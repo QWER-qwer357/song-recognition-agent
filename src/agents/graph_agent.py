@@ -15,7 +15,7 @@ memory = AgentMemory(max_short_term=10)
 llm = ChatOpenAI(
     model="glm-4-flash",
     temperature=0,
-    api_key="1b12cc8a8fb741ea9c70eabe06417384.UhI3DGPNPL3TnJtb",
+    api_key="xxx",
     base_url="https://open.bigmodel.cn/api/paas/v4/"
 )
 
