@@ -1,0 +1,27 @@
+# 环境变量与密钥
+.env
+*.env
+
+# 虚拟环境与缓存
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# 数据和模型缓存
+*.db
+data/chroma/
+data/uploads/
+data/songs/
+
+# Docker 数据卷
+mysql_data/
+
+# 大模型缓存
+.cache/
+huggingface/
+
+# 系统文件
+.vscode/
+.idea/
+.DS_Store
