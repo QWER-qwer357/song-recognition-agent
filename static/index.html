@@ -342,8 +342,8 @@
                     </svg>
                 </div>
                 <p>点击选择音频文件，或将文件拖拽到此处</p>
-                <p class="hint">支持 mp3、wav 格式</p>
-                <input type="file" id="fileInput" accept=".mp3,.wav" style="display: none;">
+               <p class="hint">支持 mp3、wav、m4a 等常见音频格式</p>
+                <input type="file" id="fileInput" accept="audio/*" style="display: none;">
             </div>
 
             <div class="file-info" id="fileInfo">
@@ -381,7 +381,7 @@
             <div id="historyList">
                 <div class="empty-state">
                     <span class="emoji">🎧</span>
-                    暂无记录，快去识别一首歌吧
+                    暂无记录
                 </div>
             </div>
         </div>
@@ -434,7 +434,7 @@
             submitBtn.disabled = true;
             submitBtn.classList.add('loading');
             submitBtn.querySelector('.btn-text').textContent = '正在识别...';
-            showStatus('processing', '🔍 正在处理，请稍候...');
+            showStatus('processing', '正在处理，请稍候...');
             resultDiv.classList.remove('active');
 
             const formData = new FormData();
@@ -449,14 +449,14 @@
                 } else if (data.song_name) {
                     showResult(data);
                 } else if (data.message) {
-                    showStatus('error', '❌ ' + data.message);
+                    showStatus('error', '' + data.message);
                     resetButton();
                 } else {
-                    showStatus('error', '❌ 识别失败，请稍后重试');
+                    showStatus('error', '识别失败，请稍后重试');
                     resetButton();
                 }
             } catch (err) {
-                showStatus('error', '❌ 请求失败：' + err.message);
+                showStatus('error', ' 请求失败：' + err.message);
                 resetButton();
             }
         });
@@ -480,16 +480,16 @@
                         showResult(data.result);
                     } else if (data.status === 'error') {
                         clearInterval(timer);
-                        showStatus('error', '❌ 识别出错：' + (data.error || '未知错误'));
+                        showStatus('error', '识别出错：' + (data.error || '未知错误'));
                         resetButton();
                     } else if (attempts > 30) {
                         clearInterval(timer);
-                        showStatus('error', '⏰ 处理超时，请稍后重试');
+                        showStatus('error', '处理超时，请稍后重试');
                         resetButton();
                     }
                 } catch (err) {
                     clearInterval(timer);
-                    showStatus('error', '❌ 查询结果失败');
+                    showStatus('error', '查询结果失败');
                     resetButton();
                 }
             }, 1500);
@@ -497,21 +497,35 @@
 
         function showResult(result) {
             if (!result || !result.song_name) {
-                showStatus('error', '😕 未识别到歌曲');
-                resetButton();
+                showStatus('error', '未识别到歌曲');
+                submitBtn.disabled = false;
                 return;
             }
             statusDiv.classList.remove('active');
-            document.getElementById('rSongName').textContent = result.song_name || '未知';
-            document.getElementById('rArtist').textContent = result.artist || '未知';
+
+            let songName = result.song_name || '未知';
+            let artist = result.artist || '未知';
+
+            if (artist === '未知' && songName.includes(' - ')) {
+                const parts = songName.split(' - ');
+                artist = parts[0].trim(); 
+                songName = parts.slice(1).join(' - ').trim(); 
+            }
+
+            document.getElementById('rSongName').textContent = songName; 
+            document.getElementById('rArtist').textContent = artist; 
             document.getElementById('rScore').textContent = result.match_score || '-';
             document.getElementById('rCache').innerHTML = result.cached
-                ? '<span class="badge badge-cached">⚡ 来自缓存</span>'
-                : '<span class="badge badge-new">🎯 实时识别</span>';
+                ? '<span class="badge badge-cached">来自缓存</span>'
+                : '<span class="badge badge-new">实时识别</span>';
             resultDiv.classList.add('active');
-            resetButton();
+            submitBtn.disabled = false;
 
-            history.unshift({ song: result.song_name, score: result.match_score, time: new Date().toLocaleTimeString() });
+            history.unshift({
+                song: songName,
+                score: result.match_score,
+                time: new Date().toLocaleTimeString()
+            });
             renderHistory();
         }
 

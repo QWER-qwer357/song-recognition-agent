@@ -55,7 +55,6 @@ async def add_song(file: UploadFile = File(...), song_name: str = "unknown"):
 
 @app.post("/recognize")
 async def recognize(file: UploadFile = File(...)):
-   
     RECOGNIZE_TOTAL.inc()
     start_time = time.time()
 
@@ -64,19 +63,32 @@ async def recognize(file: UploadFile = File(...)):
 
     cached = get_cached_result(file_hash)
     if cached:
-        RECOGNIZE_SUCCESS.inc() 
-        RECOGNIZE_LATENCY.observe(time.time() - start_time)  
+        RECOGNIZE_SUCCESS.inc()
+        RECOGNIZE_LATENCY.observe(time.time() - start_time)
         return {"result": cached, "cached": True}
 
     session_id = str(uuid4())
-    file_path = f"data/uploads/{session_id}.wav"
     os.makedirs("data/uploads", exist_ok=True)
-    with open(file_path, "wb") as f:
+    
+    raw_path = f"data/uploads/{session_id}_raw"
+    with open(raw_path, "wb") as f:
         f.write(content)
 
-    submit_audio_task(file_path, session_id)
-    return {"session_id": session_id, "status": "processing"}
+    wav_path = f"data/uploads/{session_id}.wav"
+    from pydub import AudioSegment
+    try:
+        print(f"【API】正在转码: {file.filename}")
+        audio = AudioSegment.from_file(raw_path)
+        audio.export(wav_path, format="wav")
+        print(f"【API】转码成功: {wav_path}")
+    except Exception as e:
+        print(f"【API 转码失败】: {e}，按原文件继续处理")
+        shutil.copy(raw_path, wav_path)
+    finally:
+        os.unlink(raw_path)
 
+    submit_audio_task(wav_path, session_id)
+    return {"session_id": session_id, "status": "processing"}
 
 @app.get("/result/{session_id}")
 def get_result(session_id: str):
