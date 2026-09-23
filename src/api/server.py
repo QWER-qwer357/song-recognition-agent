@@ -1,3 +1,4 @@
+from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import shutil, os, tempfile, uvicorn, hashlib, time
@@ -14,6 +15,12 @@ from src.utils.metrics import (
 )
 
 app = FastAPI(title="听歌识曲", version="1.0")
+app.mount("/static", StaticFiles(directory="static", html=True), name="static")
+
+@app.get("/ui")
+async def ui():
+    from fastapi.responses import FileResponse
+    return FileResponse("static/index.html")
 
 app.add_middleware(
     CORSMiddleware,
