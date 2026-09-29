@@ -1,28 +1,29 @@
-# 环境变量与密钥
-.env
-*.env
-
-# 虚拟环境与缓存
-venv/
-.venv/
+*.mp3
+*.wav
+*.flac
+*.m4a
+*.lnk
+.DS_Store
+Thumbs.db
 __pycache__/
 *.pyc
-
-# 数据和模型缓存
+*.pyo
+.venv/
+venv/
+env/
+.env
+*.env
 *.db
-data/chroma/
+*.sqlite3
+data/library/
 data/uploads/
 data/songs/
-
-# Docker 数据卷
+data/chroma/
 mysql_data/
-
-# 大模型缓存
 .cache/
 huggingface/
-
-# 系统文件
 .vscode/
 .idea/
-.DS_Store
-data/library/
+spectrogram.png
+requirements_frozen.txt
+create_schedule.py
