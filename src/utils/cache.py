@@ -4,8 +4,9 @@ import hashlib
 import time
 from contextlib import contextmanager
 
-# 连接本地 Docker 里的 Redis
-r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+import os
+redis_host = os.getenv("REDIS_HOST", "127.0.0.1") # Docker 环境里会用 redis
+r = redis.Redis(host=redis_host, port=6379, db=0, decode_responses=True)
 
 def cache_song_result(audio_hash, result, ttl=3600):
     """缓存识别结果 1小时过期"""

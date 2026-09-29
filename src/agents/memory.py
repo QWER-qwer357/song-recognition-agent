@@ -39,7 +39,6 @@ class AgentMemory:
         old_messages = self.short_term[:self.max_short_term // 2]
         summary = self.llm.invoke(f"请把以下对话摘要成关键信息：\n{old_messages}").content
         
-        # 存入长期记忆
         self._add_to_long_term(f"对话摘要：{summary}")
         
         self.short_term = [{"role": "system", "content": f"之前的对话摘要：{summary}"}] + self.short_term[self.max_short_term // 2:]

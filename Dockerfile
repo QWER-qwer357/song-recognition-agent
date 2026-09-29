@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y libsndfile1 ffmpeg && rm -rf /var/lib/a
 
 # 复制依赖清单并安装
 COPY requirements.txt .
+RUN apt-get update && apt-get install -y ffmpeg libsndfile1
 RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 复制项目代码

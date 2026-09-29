@@ -37,7 +37,7 @@ def recognize_song(audio_file_path: str) -> str:
 
 @tool
 def get_song_info(song_name: str) -> str:
-    """查询歌曲详细信息。输入歌名，返回歌手、年份。"""
+    """查询歌曲详细信息。输入歌名，返回歌手年份。"""
     song_db = {"第一首歌": {"artist": "NastelBom",  "year": "2025"}}
     info = song_db.get(song_name)
     if info:

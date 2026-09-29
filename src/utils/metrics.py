@@ -10,6 +10,5 @@ AGENT_STEPS = Histogram('agent_steps', 'Steps per agent run')
 ACTIVE_SESSIONS = Gauge('active_sessions', 'Active user sessions')
 
 def start_metrics():
-    # 启动一个 HTTP 服务器 暴露指标
     start_http_server(9999)
     print("Metrics 服务器已启动: http://localhost:9999/metrics")

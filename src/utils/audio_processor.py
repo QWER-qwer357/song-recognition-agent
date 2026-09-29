@@ -3,12 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def load_audio(file_path, sr=22050, duration=30):
-    """加载音频文件，返回波形和采样率"""
+    """加载音频文件 返回波形和采样率"""
     y, sr = librosa.load(file_path, sr=sr, duration=duration)
     return y, sr
 
 def get_spectrogram(y, sr):
-    """计算频谱图（短时傅里叶变换）"""
+    """计算频谱图"""
     D = librosa.stft(y)
     S = librosa.amplitude_to_db(np.abs(D), ref=np.max)
     return S

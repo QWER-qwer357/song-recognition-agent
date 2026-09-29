@@ -1,543 +1,751 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>听歌识曲 · Song Finder</title>
-    <style>
-        :root {
-            --purple: #8b5cf6;
-            --pink: #ec4899;
-            --blue: #3b82f6;
-            --dark: #1e1b4b;
-            --text: #1e293b;
-            --text-light: #64748b;
-            --bg: #faf5ff;
-            --card: #ffffff;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Song Finder · 听歌识曲</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --mint: #5eead4;
+    --sky: #7dd3fc;
+    --mint-deep: #14b8a6;
+    --sky-deep: #0ea5e9;
+    --cream: #f0fdfa;
+    --ink: #1e293b;
+    --ink-soft: #64748b;
+    --white: #ffffff;
+  }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #faf5ff 0%, #eff6ff 50%, #f0fdfa 100%);
-            color: var(--text);
-            display: flex;
-            justify-content: center;
-            padding: 60px 20px;
-            position: relative;
-            overflow-x: hidden;
-        }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #e0f2fe 0%, #ccfbf1 50%, #dbeafe 100%);
+    min-height: 100vh;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+    overflow-x: hidden;
+  }
 
-        /* 背景装饰光斑 */
-        body::before {
-            content: '';
-            position: fixed;
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
-            top: -200px;
-            left: -200px;
-            border-radius: 50%;
-            pointer-events: none;
-        }
-        body::after {
-            content: '';
-            position: fixed;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(236, 72, 153, 0.12) 0%, transparent 70%);
-            bottom: -250px;
-            right: -250px;
-            border-radius: 50%;
-            pointer-events: none;
-        }
+  /* ============ 背景图案层：波点 + 云朵 ============ */
+  .bg-decor {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .bg-decor::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(94, 234, 212, 0.35) 0%, transparent 25%),
+      radial-gradient(circle at 80% 70%, rgba(125, 211, 252, 0.35) 0%, transparent 25%),
+      radial-gradient(circle at 50% 100%, rgba(167, 243, 208, 0.4) 0%, transparent 30%);
+  }
+  .bg-dots {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(20, 184, 166, 0.18) 1.5px, transparent 1.5px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  }
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.55;
+    animation: float 12s ease-in-out infinite;
+  }
+  .blob.b1 { width: 320px; height: 320px; background: #5eead4; top: -80px; left: -80px; }
+  .blob.b2 { width: 260px; height: 260px; background: #7dd3fc; top: 40%; right: -100px; animation-delay: -4s; }
+  .blob.b3 { width: 300px; height: 300px; background: #a7f3d0; bottom: -100px; left: 30%; animation-delay: -8s; }
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(30px, -30px) scale(1.08); }
+  }
 
-        .container {
-            width: 100%;
-            max-width: 560px;
-            position: relative;
-            z-index: 1;
-        }
+  /* ============ 主容器 ============ */
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
 
-        /* 头部 */
-        .header {
-            text-align: center;
-            margin-bottom: 36px;
-        }
-        .logo {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
-            border-radius: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
-            position: relative;
-        }
-        .logo svg { width: 32px; height: 32px; color: white; }
-        .logo::after {
-            content: '';
-            position: absolute;
-            inset: -6px;
-            border-radius: 26px;
-            background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(236,72,153,0.4));
-            z-index: -1;
-            filter: blur(12px);
-            opacity: 0.6;
-        }
-        .header h1 {
-            font-size: 30px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
-        }
-        .header p { font-size: 14px; color: var(--text-light); }
+  /* ============ 顶部标题 ============ */
+  .header { text-align: center; margin-bottom: 40px; }
+  .logo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--white);
+    padding: 10px 20px;
+    border-radius: 999px;
+    box-shadow: 0 4px 20px rgba(20, 184, 166, 0.15);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--mint-deep);
+    margin-bottom: 20px;
+  }
+  .logo-badge .emoji { font-size: 18px; }
+  .title {
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    background: linear-gradient(120deg, #14b8a6 0%, #0ea5e9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle {
+    font-size: 16px;
+    color: var(--ink-soft);
+    max-width: 480px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
 
-        /* 卡片 */
-        .card {
-            background: var(--card);
-            border-radius: 24px;
-            padding: 28px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 40px -10px rgba(139, 92, 246, 0.15), 0 4px 12px rgba(0, 0, 0, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            position: relative;
-            overflow: hidden;
-        }
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #8b5cf6, #ec4899, #3b82f6);
-            border-radius: 24px 24px 0 0;
-        }
+  /* ============ 卡片通用 ============ */
+  .card {
+    background: var(--white);
+    border-radius: 28px;
+    padding: 32px;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 12px 40px rgba(20, 184, 166, 0.1);
+    border: 1px solid rgba(94, 234, 212, 0.3);
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--mint-deep);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+  }
+  .card-label::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--mint-deep);
+  }
 
-        /* 上传区 */
-        .upload-zone {
-            border: 2px dashed #e9d5ff;
-            border-radius: 16px;
-            padding: 44px 24px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            background: linear-gradient(135deg, #faf5ff 0%, #fdf4ff 100%);
-            position: relative;
-        }
-        .upload-zone:hover, .upload-zone.dragover {
-            border-color: #8b5cf6;
-            background: linear-gradient(135deg, #f3e8ff 0%, #fae8ff 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15);
-        }
-        .upload-icon-wrap {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 72px;
-            height: 72px;
-            background: white;
-            border-radius: 50%;
-            margin-bottom: 18px;
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
-            transition: transform 0.3s ease;
-        }
-        .upload-zone:hover .upload-icon-wrap { transform: scale(1.1) rotate(-5deg); }
-        .upload-icon-wrap svg { width: 32px; height: 32px; color: #8b5cf6; }
-        .upload-zone p { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
-        .upload-zone .hint { font-size: 13px; color: var(--text-light); }
+  /* ============ 上传区 ============ */
+  .drop {
+    border: 2.5px dashed #99f6e4;
+    background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+    border-radius: 22px;
+    padding: 56px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+  }
+  .drop:hover, .drop.drag {
+    border-color: var(--mint-deep);
+    background: linear-gradient(135deg, #ccfbf1 0%, #cffafe 100%);
+    transform: scale(1.01);
+  }
+  .drop-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    display: inline-block;
+    animation: bounce 2.5s ease-in-out infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .drop-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .drop-sub {
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
 
-        /* 文件信息 */
-        .file-info {
-            display: none;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 18px;
-            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-            border: 1px solid #bbf7d0;
-            border-radius: 12px;
-            margin-top: 16px;
-            font-size: 14px;
-            animation: slideIn 0.3s ease;
-        }
-        .file-info.active { display: flex; }
-        .file-info .icon { font-size: 20px; }
-        .file-info .name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .file-info .size { color: var(--text-light); font-size: 12px; background: white; padding: 3px 10px; border-radius: 6px; font-weight: 500; }
+  /* ============ 文件信息 ============ */
+  .file-pill {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    background: #f0fdfa;
+    border: 1.5px solid #99f6e4;
+    border-radius: 16px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    font-size: 14px;
+  }
+  .file-pill.active { display: flex; }
+  .file-pill .icon { font-size: 20px; }
+  .file-pill .name {
+    flex: 1;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink);
+  }
+  .file-pill .size {
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-family: ui-monospace, monospace;
+  }
 
-        /* 按钮 */
-        .btn {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 14px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            font-family: inherit;
-            letter-spacing: 0.3px;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
-            color: #fff;
-            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.35);
-        }
-        .btn-primary:hover:not(:disabled) {
-            box-shadow: 0 12px 28px rgba(139, 92, 246, 0.5);
-            transform: translateY(-2px);
-        }
-        .btn-primary:active:not(:disabled) { transform: translateY(0); }
-        .btn-primary:disabled {
-            background: #e2e8f0;
-            box-shadow: none;
-            color: #94a3b8;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .btn svg { width: 18px; height: 18px; }
+  /* ============ 主按钮 ============ */
+  .btn-main {
+    width: 100%;
+    padding: 18px 24px;
+    border: none;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #5eead4 0%, #7dd3fc 100%);
+    color: #0f172a;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 8px 24px rgba(20, 184, 166, 0.25);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+  }
+  .btn-main:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px rgba(20, 184, 166, 0.35);
+  }
+  .btn-main:active:not(:disabled) { transform: translateY(0); }
+  .btn-main:disabled {
+    background: #e2e8f0;
+    color: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
 
-        .spinner {
-            display: none;
-            width: 18px;
-            height: 18px;
-            border: 2px solid rgba(255,255,255,0.4);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 0.8s linear infinite;
-        }
-        .btn.loading .spinner { display: block; }
-        .btn.loading svg { display: none; }
-        .btn.loading { background: linear-gradient(135deg, #a78bfa 0%, #f472b6 100%); cursor: wait; }
+  /* ============ 状态提示 ============ */
+  .status {
+    display: none;
+    padding: 14px 18px;
+    border-radius: 14px;
+    font-size: 14px;
+    margin-top: 16px;
+    text-align: center;
+    font-weight: 500;
+  }
+  .status.active { display: block; animation: fadeIn 0.3s; }
+  .status.processing {
+    background: #ecfeff;
+    color: #0e7490;
+    border: 1px solid #a5f3fc;
+  }
+  .status.error {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* 状态提示 */
-        .status {
-            display: none;
-            padding: 14px 18px;
-            border-radius: 12px;
-            font-size: 14px;
-            margin-top: 16px;
-            font-weight: 500;
-            align-items: center;
-            gap: 8px;
-            animation: slideIn 0.3s ease;
-        }
-        .status.active { display: flex; }
-        .status.processing { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-        .status.success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-        .status.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  /* ============ 结果展示 ============ */
+  .result {
+    display: none;
+    margin-top: 24px;
+    text-align: center;
+  }
+  .result.active { display: block; animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+  @keyframes popIn {
+    0% { opacity: 0; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1); }
+  }
 
-        /* 结果 */
-        .result {
-            display: none;
-            margin-top: 24px;
-            padding: 20px;
-            background: linear-gradient(135deg, #faf5ff 0%, #eff6ff 100%);
-            border-radius: 16px;
-            border: 1px solid #e9d5ff;
-            animation: slideIn 0.4s ease;
-        }
-        .result.active { display: block; }
-        .result-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #8b5cf6;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .result-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            font-size: 15px;
-            border-bottom: 1px dashed #e9d5ff;
-        }
-        .result-row:last-child { border-bottom: none; padding-bottom: 0; }
-        .result-row .label { color: var(--text-light); }
-        .result-row .value { font-weight: 700; color: var(--text); }
-        .badge {
-            display: inline-block;
-            padding: 3px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .badge-cached { background: #dcfce7; color: #15803d; }
-        .badge-new { background: #dbeafe; color: #1d4ed8; }
+  .vinyl {
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at center, #1e293b 0%, #1e293b 30%, #334155 31%, #1e293b 32%, #1e293b 40%, #334155 41%, #1e293b 42%, #1e293b 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 12px 32px rgba(20, 184, 166, 0.3);
+    animation: spin 8s linear infinite paused;
+  }
+  .result.active .vinyl { animation-play-state: running; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* 历史记录 */
-        .history-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text-light);
-            margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .history-title svg { width: 16px; height: 16px; }
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 18px;
-            background: var(--card);
-            border-radius: 14px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            font-size: 14px;
-            animation: slideIn 0.3s ease;
-            border-left: 3px solid #8b5cf6;
-            transition: transform 0.2s;
-        }
-        .history-item:hover { transform: translateX(4px); }
-        .history-item .song { font-weight: 600; }
-        .history-item .score { color: var(--text-light); font-size: 12px; }
+  .vinyl::after {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .vinyl-label {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    box-shadow: 0 0 0 6px #1e293b;
+    position: relative;
+    z-index: 2;
+  }
+  .result-song {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--ink);
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .result-artist {
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+  }
+  .result-score {
+    display: inline-block;
+    background: linear-gradient(135deg, #d1fae5, #cffafe);
+    color: #0f766e;
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+  }
 
-        .empty-state {
-            text-align: center;
-            padding: 30px 0;
-            color: #cbd5e1;
-            font-size: 14px;
-        }
-        .empty-state .emoji { font-size: 32px; display: block; margin-bottom: 10px; }
+  /* ============ 聊天区 ============ */
+  .chat-log {
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 4px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .chat-log::-webkit-scrollbar { width: 6px; }
+  .chat-log::-webkit-scrollbar-thumb { background: #99f6e4; border-radius: 3px; }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
+  .msg {
+    display: flex;
+    gap: 10px;
+    max-width: 85%;
+    animation: fadeIn 0.3s;
+  }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    overflow: hidden;
+  }
+  /* 👇 皮卡丘头像容器 */
+  .msg.agent .avatar {
+    background: radial-gradient(circle at 50% 40%, #fef08a 0%, #facc15 70%, #eab308 100%);
+    border: 2px solid #fde047;
+    box-shadow: 0 2px 8px rgba(234, 179, 8, 0.35);
+  }
+  .msg.agent .avatar svg {
+    width: 30px;
+    height: 30px;
+  }
+  .msg.user .avatar { background: #e2e8f0; }
+  .msg .bubble {
+    padding: 12px 16px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .msg.agent .bubble {
+    background: #fefce8;
+    border: 1.5px solid #fde68a;
+    border-top-left-radius: 4px;
+  }
+  .msg.user .bubble {
+    background: linear-gradient(135deg, #5eead4, #7dd3fc);
+    color: #0f172a;
+    border-top-right-radius: 4px;
+    font-weight: 500;
+  }
+
+  .chat-input-row {
+    display: flex;
+    gap: 10px;
+    background: #f8fafc;
+    border-radius: 18px;
+    padding: 6px;
+    border: 1.5px solid #e2e8f0;
+    transition: border-color 0.2s;
+  }
+  .chat-input-row:focus-within { border-color: var(--mint-deep); }
+  .chat-input-row input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--ink);
+    outline: none;
+    font-family: inherit;
+  }
+  .chat-input-row input::placeholder { color: #94a3b8; }
+  .chat-input-row input:disabled { cursor: not-allowed; }
+  .chat-send {
+    border: none;
+    background: linear-gradient(135deg, #5eead4, #7dd3fc);
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 0 24px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .chat-send:hover:not(:disabled) { transform: scale(1.03); }
+  .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ============ 网格：两栏布局 ============ */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  /* ============ 页脚 ============ */
+  .footer {
+    text-align: center;
+    padding: 32px 0 8px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    opacity: 0.7;
+  }
+
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+    .page { padding: 32px 16px 60px; }
+    .card { padding: 24px; }
+  }
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
-                </svg>
-            </div>
-            <h1>听歌识曲</h1>
-            <p>上传一段音频，系统会自动识别出歌曲名称</p>
+
+<div class="bg-decor">
+  <div class="bg-dots"></div>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+</div>
+
+<div class="page">
+
+  <header class="header">
+    <div class="logo-badge">
+      <span class="emoji">🎧</span>
+      <span>Song Finder</span>
+    </div>
+    <h1 class="title">听出每首歌<br>背后的故事</h1>
+    <p class="subtitle">上传一段音频，让 AI 帮你识别歌曲，探索它的创作背景，或推荐相似风格的音乐。</p>
+  </header>
+
+  <div class="layout">
+
+    <!-- 左：识别 -->
+    <div class="card">
+      <div class="card-label">识别歌曲</div>
+
+      <div class="drop" id="drop">
+        <div class="drop-icon">🎵</div>
+        <div class="drop-title">点击或拖拽上传音频</div>
+        <div class="drop-sub">支持 mp3 · wav · m4a</div>
+        <input type="file" id="fileInput" accept="audio/*" hidden>
+      </div>
+
+      <div class="file-pill" id="filePill">
+        <span class="icon">📁</span>
+        <span class="name" id="fileName"></span>
+        <span class="size" id="fileSize"></span>
+      </div>
+
+      <button class="btn-main" id="submitBtn" disabled>
+        <span>🔍</span>
+        <span>开始识别</span>
+      </button>
+
+      <div class="status" id="status"></div>
+
+      <div class="result" id="result">
+        <div class="vinyl">
+          <div class="vinyl-label" id="vinylLabel">♪</div>
         </div>
-
-        <div class="card">
-            <div class="upload-zone" id="uploadZone">
-                <div class="upload-icon-wrap">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                    </svg>
-                </div>
-                <p>点击选择音频文件，或将文件拖拽到此处</p>
-               <p class="hint">支持 mp3、wav、m4a 等常见音频格式</p>
-                <input type="file" id="fileInput" accept="audio/*" style="display: none;">
-            </div>
-
-            <div class="file-info" id="fileInfo">
-                <span class="icon">🎵</span>
-                <span class="name" id="fileName"></span>
-                <span class="size" id="fileSize"></span>
-            </div>
-
-            <button class="btn btn-primary" id="submitBtn" disabled>
-                <span class="spinner"></span>
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                <span class="btn-text">开始识别</span>
-            </button>
-
-            <div class="status" id="status"></div>
-
-            <div class="result" id="result">
-                <div class="result-title">✨ 识别结果</div>
-                <div class="result-row"><span class="label">歌曲名称</span><span class="value" id="rSongName">-</span></div>
-                <div class="result-row"><span class="label">歌手</span><span class="value" id="rArtist">-</span></div>
-                <div class="result-row"><span class="label">匹配度</span><span class="value" id="rScore">-</span></div>
-                <div class="result-row"><span class="label">状态</span><span class="value" id="rCache"></span></div>
-            </div>
-        </div>
-
-        <div class="history">
-            <div class="history-title">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                识别记录
-            </div>
-            <div id="historyList">
-                <div class="empty-state">
-                    <span class="emoji">🎧</span>
-                    暂无记录
-                </div>
-            </div>
-        </div>
+        <div class="result-song" id="rSongName">—</div>
+        <div class="result-artist" id="rArtist">—</div>
+        <div class="result-score">匹配度 <span id="rScore">—</span></div>
+      </div>
     </div>
 
-    <script>
-        const uploadZone = document.getElementById('uploadZone');
-        const fileInput = document.getElementById('fileInput');
-        const fileInfo = document.getElementById('fileInfo');
-        const fileName = document.getElementById('fileName');
-        const fileSize = document.getElementById('fileSize');
-        const submitBtn = document.getElementById('submitBtn');
-        const statusDiv = document.getElementById('status');
-        const resultDiv = document.getElementById('result');
-        const historyList = document.getElementById('historyList');
+    <!-- 右：聊天 -->
+    <div class="card" style="display: flex; flex-direction: column;">
+      <div class="card-label">小皮卡 · AI 助手</div>
 
-        let selectedFile = null;
-        let history = [];
+      <div class="chat-log" id="chatLog">
+        <div class="msg agent">
+          <div class="avatar" id="pkInitial"></div>
+          <div class="bubble">皮卡皮卡！上传一首歌，我来告诉你它的故事，或者推荐相似的音乐 ⚡</div>
+        </div>
+      </div>
 
-        uploadZone.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="等待识别结果..." disabled>
+        <button class="chat-send" id="chatSend" disabled>发送</button>
+      </div>
+    </div>
 
-        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault(); uploadZone.classList.remove('dragover');
-            if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
-        });
+  </div>
 
-        function handleFile(file) {
-            if (!file) return;
-            selectedFile = file;
-            fileName.textContent = file.name;
-            fileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-            fileInfo.classList.add('active');
-            submitBtn.disabled = false;
-            submitBtn.classList.remove('loading');
-            submitBtn.querySelector('.btn-text').textContent = '开始识别';
-            statusDiv.classList.remove('active');
-            resultDiv.classList.remove('active');
-        }
+  <footer class="footer">
+    © 2026 Song Finder · Powered by LangGraph & Kafka
+  </footer>
 
-        function showStatus(type, text) {
-            statusDiv.className = 'status active ' + type;
-            statusDiv.textContent = text;
-        }
+</div>
 
-        submitBtn.addEventListener('click', async () => {
-            if (!selectedFile) return;
-            submitBtn.disabled = true;
-            submitBtn.classList.add('loading');
-            submitBtn.querySelector('.btn-text').textContent = '正在识别...';
-            showStatus('processing', '正在处理，请稍候...');
-            resultDiv.classList.remove('active');
+<script>
+// ============ 皮卡丘 SVG（黄色圆脸 + 尖耳朵 + 红腮 + 黑眼睛 + 小嘴） ============
+const PIKACHU_SVG = `
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 左耳 -->
+  <path d="M14 4 L24 22 L10 26 Z" fill="#facc15" stroke="#a16207" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- 左耳尖黑色 -->
+  <path d="M14 4 L19 12 L14 13 Z" fill="#1f2937"/>
+  <!-- 右耳 -->
+  <path d="M50 4 L40 22 L54 26 Z" fill="#facc15" stroke="#a16207" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- 右耳尖黑色 -->
+  <path d="M50 4 L45 12 L50 13 Z" fill="#1f2937"/>
+  <!-- 脸部 -->
+  <ellipse cx="32" cy="40" rx="21" ry="18" fill="#facc15" stroke="#a16207" stroke-width="1.5"/>
+  <!-- 左红腮 -->
+  <circle cx="18" cy="44" r="4" fill="#fb923c" opacity="0.75"/>
+  <!-- 右红腮 -->
+  <circle cx="46" cy="44" r="4" fill="#fb923c" opacity="0.75"/>
+  <!-- 左眼 -->
+  <ellipse cx="24" cy="36" rx="2.5" ry="3.5" fill="#1f2937"/>
+  <circle cx="24.8" cy="35" r="1" fill="#fff"/>
+  <!-- 右眼 -->
+  <ellipse cx="40" cy="36" rx="2.5" ry="3.5" fill="#1f2937"/>
+  <circle cx="40.8" cy="35" r="1" fill="#fff"/>
+  <!-- 鼻子/嘴 -->
+  <ellipse cx="32" cy="43" rx="1.6" ry="1" fill="#1f2937"/>
+  <path d="M29 46 Q32 49 35 46" stroke="#1f2937" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+</svg>
+`;
 
-            const formData = new FormData();
-            formData.append('file', selectedFile);
+// ============ 状态 ============
+let selectedFile = null;
+let currentSong = null;
 
-            try {
-                const res = await fetch('/recognize', { method: 'POST', body: formData });
-                const data = await res.json();
+// ============ DOM ============
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+const filePill = document.getElementById('filePill');
+const fileName = document.getElementById('fileName');
+const fileSize = document.getElementById('fileSize');
+const submitBtn = document.getElementById('submitBtn');
+const statusEl = document.getElementById('status');
+const resultEl = document.getElementById('result');
+const chatInput = document.getElementById('chatInput');
+const chatSend = document.getElementById('chatSend');
+const chatLog = document.getElementById('chatLog');
 
-                if (data.session_id) {
-                    pollResult(data.session_id);
-                } else if (data.song_name) {
-                    showResult(data);
-                } else if (data.message) {
-                    showStatus('error', '' + data.message);
-                    resetButton();
-                } else {
-                    showStatus('error', '识别失败，请稍后重试');
-                    resetButton();
-                }
-            } catch (err) {
-                showStatus('error', ' 请求失败：' + err.message);
-                resetButton();
-            }
-        });
+// 首页皮卡丘头像注入
+document.getElementById('pkInitial').innerHTML = PIKACHU_SVG;
 
-        function resetButton() {
-            submitBtn.disabled = false;
-            submitBtn.classList.remove('loading');
-            submitBtn.querySelector('.btn-text').textContent = '开始识别';
-        }
+// ============ 上传交互 ============
+drop.addEventListener('click', () => fileInput.click());
+drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+drop.addEventListener('drop', (e) => {
+  e.preventDefault(); drop.classList.remove('drag');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
 
-        async function pollResult(sessionId) {
-            let attempts = 0;
-            const timer = setInterval(async () => {
-                attempts++;
-                try {
-                    const res = await fetch('/result/' + sessionId);
-                    const data = await res.json();
+function handleFile(file) {
+  if (!file) return;
+  if (file.size > 30 * 1024 * 1024) {
+    showStatus('文件过大，请上传小于 30MB 的音频', 'error');
+    return;
+  }
+  selectedFile = file;
+  fileName.textContent = file.name;
+  fileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+  filePill.classList.add('active');
+  submitBtn.disabled = false;
+  resultEl.classList.remove('active');
+  clearStatus();
 
-                    if (data.status === 'completed') {
-                        clearInterval(timer);
-                        showResult(data.result);
-                    } else if (data.status === 'error') {
-                        clearInterval(timer);
-                        showStatus('error', '识别出错：' + (data.error || '未知错误'));
-                        resetButton();
-                    } else if (attempts > 30) {
-                        clearInterval(timer);
-                        showStatus('error', '处理超时，请稍后重试');
-                        resetButton();
-                    }
-                } catch (err) {
-                    clearInterval(timer);
-                    showStatus('error', '查询结果失败');
-                    resetButton();
-                }
-            }, 1500);
-        }
+  // 重置聊天（皮卡丘）
+  currentSong = null;
+  chatInput.disabled = true;
+  chatSend.disabled = true;
+  chatInput.placeholder = '等待识别结果...';
+  chatLog.innerHTML = `<div class="msg agent"><div class="avatar">${PIKACHU_SVG}</div><div class="bubble">皮卡皮卡！上传一首歌，我来告诉你它的故事，或者推荐相似的音乐 ⚡</div></div>`;
+}
 
-        function showResult(result) {
-            if (!result || !result.song_name) {
-                showStatus('error', '未识别到歌曲');
-                submitBtn.disabled = false;
-                return;
-            }
-            statusDiv.classList.remove('active');
+function showStatus(text, type = 'processing') {
+  statusEl.className = 'status active ' + type;
+  statusEl.textContent = text;
+}
+function clearStatus() { statusEl.className = 'status'; }
 
-            let songName = result.song_name || '未知';
-            let artist = result.artist || '未知';
+// ============ 提交识别 ============
+submitBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  submitBtn.disabled = true;
+  showStatus('⏳ 正在分析音频指纹...');
+  resultEl.classList.remove('active');
 
-            if (artist === '未知' && songName.includes(' - ')) {
-                const parts = songName.split(' - ');
-                artist = parts[0].trim(); 
-                songName = parts.slice(1).join(' - ').trim(); 
-            }
+  const fd = new FormData();
+  fd.append('file', selectedFile);
 
-            document.getElementById('rSongName').textContent = songName; 
-            document.getElementById('rArtist').textContent = artist; 
-            document.getElementById('rScore').textContent = result.match_score || '-';
-            document.getElementById('rCache').innerHTML = result.cached
-                ? '<span class="badge badge-cached">来自缓存</span>'
-                : '<span class="badge badge-new">实时识别</span>';
-            resultDiv.classList.add('active');
-            submitBtn.disabled = false;
+  try {
+    const res = await fetch('/recognize', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error('服务器错误 ' + res.status);
+    const data = await res.json();
+    if (data.session_id) pollResult(data.session_id);
+  } catch (err) {
+    showStatus('请求失败：' + err.message, 'error');
+    submitBtn.disabled = false;
+  }
+});
 
-            history.unshift({
-                song: songName,
-                score: result.match_score,
-                time: new Date().toLocaleTimeString()
-            });
-            renderHistory();
-        }
+async function pollResult(sid) {
+  let n = 0;
+  const timer = setInterval(async () => {
+    n++;
+    try {
+      const res = await fetch('/result/' + sid);
+      const data = await res.json();
+      if (data.status === 'completed') { clearInterval(timer); showResult(data.result); }
+      else if (data.status === 'error') { clearInterval(timer); showStatus('识别出错：' + (data.error || '未知'), 'error'); submitBtn.disabled = false; }
+      else if (n > 40) { clearInterval(timer); showStatus('处理超时，请重试', 'error'); submitBtn.disabled = false; }
+    } catch (err) {
+      clearInterval(timer);
+      showStatus('查询结果失败', 'error');
+      submitBtn.disabled = false;
+    }
+  }, 1500);
+}
 
-        function renderHistory() {
-            if (history.length === 0) return;
-            historyList.innerHTML = history.map(h => `
-                <div class="history-item">
-                    <span class="song">${h.song}</span>
-                    <span class="score">匹配度 ${h.score} · ${h.time}</span>
-                </div>
-            `).join('');
-        }
-    </script>
+// 颜色池（用于唱片标签）
+const PALETTE = [
+  'linear-gradient(135deg, #5eead4, #14b8a6)',
+  'linear-gradient(135deg, #7dd3fc, #0ea5e9)',
+  'linear-gradient(135deg, #a7f3d0, #34d399)',
+  'linear-gradient(135deg, #bae6fd, #38bdf8)',
+  'linear-gradient(135deg, #99f6e4, #2dd4bf)',
+];
+
+function pickColor(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return PALETTE[Math.abs(h) % PALETTE.length];
+}
+
+function showResult(result) {
+  if (!result || !result.song_name) {
+    showStatus('未识别到歌曲，请尝试其他片段', 'error');
+    submitBtn.disabled = false;
+    return;
+  }
+  clearStatus();
+  currentSong = result.song_name;
+
+  document.getElementById('rSongName').textContent = result.song_name;
+  document.getElementById('rArtist').textContent = result.artist || '未知歌手';
+  document.getElementById('rScore').textContent = result.match_score || '—';
+
+  const lbl = document.getElementById('vinylLabel');
+  lbl.textContent = result.song_name.charAt(0).toUpperCase();
+  lbl.style.background = pickColor(result.song_name);
+
+  resultEl.classList.add('active');
+  submitBtn.disabled = false;
+
+  // 解锁聊天
+  chatInput.disabled = false;
+  chatSend.disabled = false;
+  chatInput.placeholder = `对《${result.song_name}》提问...`;
+
+  setTimeout(() => {
+    addMsg('agent', `皮卡皮卡！识别到《${result.song_name}》啦！想了解它的创作故事，还是让我推荐几首相似风格的歌？⚡`);
+  }, 400);
+}
+
+// ============ 聊天 ============
+function addMsg(role, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  const avatarHTML = role === 'agent' ? PIKACHU_SVG : '🙂';
+  div.innerHTML = `<div class="avatar">${avatarHTML}</div><div class="bubble"></div>`;
+  div.querySelector('.bubble').textContent = text;
+  chatLog.appendChild(div);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+async function sendChat() {
+  const msg = chatInput.value.trim();
+  if (!msg) return;
+  addMsg('user', msg);
+  chatInput.value = '';
+  chatSend.disabled = true;
+  chatSend.textContent = '...';
+
+  try {
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, current_song: currentSong || '' })
+    });
+    const data = await res.json();
+    addMsg('agent', data.reply);
+  } catch (err) {
+    addMsg('agent', '请求失败：' + err.message);
+  } finally {
+    chatSend.disabled = false;
+    chatSend.textContent = '发送';
+  }
+}
+
+chatSend.addEventListener('click', sendChat);
+chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChat(); });
+</script>
 </body>
 </html>
