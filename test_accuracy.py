@@ -13,9 +13,9 @@ from pydub import AudioSegment
 MP3_DIR = "data/library/mp3"
 CLIPS_DIR = "data/test_clips"
 API_URL = "http://127.0.0.1:8010"
-NUM_TESTS = 10          # 测试多少首歌
+NUM_TESTS = 20          # 测试多少首歌
 CLIP_DURATION = 10      # 每个片段截多少秒
-START_OFFSET = 5       # 从第30秒开始截（模拟从歌曲中间听）
+START_OFFSET = 5        # 从第5秒开始截
 
 os.makedirs(CLIPS_DIR, exist_ok=True)
 
@@ -33,11 +33,7 @@ def make_test_clips():
         src = os.path.join(MP3_DIR, fname)
         try:
             audio = AudioSegment.from_file(src)
-            # 如果音频不够长，从头截
-            if len(audio) < (START_OFFSET + CLIP_DURATION) * 1000:
-                start = 0
-            else:
-                start = random.randint(START_OFFSET, len(audio) // 1000 - CLIP_DURATION - 1) * 1000
+            start = START_OFFSET * 1000
             clip = audio[start:start + CLIP_DURATION * 1000]
             clip_path = os.path.join(CLIPS_DIR, f"{song_name}_clip.mp3")
             clip.export(clip_path, format="mp3")
@@ -49,14 +45,13 @@ def make_test_clips():
 
 
 def recognize(clip_path):
-    """上传片段并轮询结果，返回 (识别的歌名, 耗时秒) 或 (None, 耗时)"""
+    """上传片段并轮询结果，返回 (识别的歌名, 耗时秒)"""
     start_time = time.time()
     try:
         with open(clip_path, "rb") as f:
             r = requests.post(f"{API_URL}/recognize", files={"file": f}, timeout=30)
         data = r.json()
 
-        # 异步：拿到 session_id 后轮询
         if "session_id" in data:
             sid = data["session_id"]
             for _ in range(40):
@@ -70,7 +65,6 @@ def recognize(clip_path):
                     return None, time.time() - start_time
             return None, time.time() - start_time
 
-        # 同步：直接返回结果
         if "result" in data:
             result = data["result"] or {}
             return result.get("song_name"), time.time() - start_time
@@ -85,16 +79,13 @@ def main():
     print("🎵 听歌识曲系统 · 自动准确率测试")
     print("=" * 60)
 
-    # 曲库统计
     total_songs = len([f for f in os.listdir(MP3_DIR) if f.lower().endswith(".mp3")])
     print(f"\n📚 曲库总数: {total_songs} 首\n")
 
-    # 生成测试片段
     print(f"✂️ 正在生成 {NUM_TESTS} 个测试片段...")
     clips = make_test_clips()
     print(f"\n✅ 生成 {len(clips)} 个测试片段\n")
 
-    # 逐个测试
     print("🎧 开始识别测试...\n")
     correct = 0
     total_time = 0
@@ -111,10 +102,9 @@ def main():
             print(f"  ✅ 识别正确: {recognized}  ({elapsed:.2f}s)")
         else:
             results.append((clip["expected"], recognized or "未识别", elapsed, "❌"))
-            print(f"  ❌ 识别错误: 期望「{clip['expected']}」, 得到「{recognized or '未识别'}」  ({elapsed:.2f}s)")
+            print(f"  ❌ 识别错误: 期望「{clip['expected']}」，得到「{recognized or '未识别'}」  ({elapsed:.2f}s)")
         print()
 
-    # 汇总
     accuracy = correct / len(clips) * 100 if clips else 0
     avg_time = total_time / len(clips) if clips else 0
 
@@ -128,7 +118,6 @@ def main():
     print(f"平均响应时间:  {avg_time:.2f} 秒")
     print("=" * 60)
 
-    print("\n💡 把下面这句话填进简历/README：")
     print(f"曲库 {total_songs} 首，识别准确率 {accuracy:.0f}%，平均响应 {avg_time:.1f}s。")
     print()
 

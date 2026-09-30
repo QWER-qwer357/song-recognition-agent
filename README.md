@@ -1,6 +1,6 @@
 # 🎵 Song Finder · 听歌识曲 AI Agent 系统
 
-基于 **FastAPI + LangGraph** 的听歌识曲智能体系统：上传一段音频，自动提取音频指纹并在曲库中匹配识别；结合大语言模型实现多 Agent 意图路由与多轮对话，支持自然语言查歌、歌曲信息查询与相似推荐。曲库 15 首，识别准确率 70%，平均响应 1.9s。
+基于 **FastAPI + LangGraph** 的听歌识曲智能体系统：上传一段音频，自动提取音频指纹并在曲库中匹配识别；结合大语言模型实现多 Agent 意图路由与多轮对话，支持自然语言查歌、歌曲信息查询与相似推荐。曲库 193 首，识别准确率 90%，平均响应 2.1s。
 
 ## 📖 项目简介
 
@@ -45,7 +45,7 @@ git clone https://github.com/QWER-qwer357/song-recognition-agent.git
 cd song-recognition-agent
 
 # 2. 配置 LLM API Key
-# 编辑以下 4 个文件，把 api_key="你的API_KEY" 换成你的智谱 Key：
+# 编辑以下 4 个文件，把 api_key="xxx" 换成你的智谱 Key：
 #   src/agents/orchestrator.py
 #   src/agents/memory.py
 #   src/agents/graph_agent.py

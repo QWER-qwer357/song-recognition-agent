@@ -1,6 +1,7 @@
 from src.db.database import SessionLocal, Song, Fingerprint
 from collections import defaultdict
 
+
 def store_fingerprints(db, song_name, hashes, file_path=None, artist=None):
     """存储歌曲指纹到数据库"""
     song = Song(name=song_name, file_path=file_path, artist=artist)
@@ -14,30 +15,54 @@ def store_fingerprints(db, song_name, hashes, file_path=None, artist=None):
     db.commit()
     return song.id
 
-def match_song(db, hashes, threshold=50):
-    """用指纹哈希匹配歌曲，返回最佳匹配。
-    阈值默认调高到 50 避免短音频/噪音导致的误匹配。
+
+def match_song(db, hashes, threshold=10):
     """
-    hash_list = [str(h) for h, _ in hashes]
+    真正的 Shazam 式匹配：用「时间偏移一致性」过滤误匹配。
+    
+    原理：
+    1. 对每个命中哈希，计算「数据库偏移 - 查询偏移」
+    2. 正确匹配的歌曲，所有命中哈希的时间偏移应该一致（形成峰值）
+    3. 误匹配的时间偏移会随机散布，形不成峰值
+    4. 取「同一 (song_id, offset) 组合的最大命中数」作为得分
+    """
+    if not hashes:
+        return {"status": "no_match", "message": "未提取到任何指纹"}
+
+    # query 哈希 -> 偏移 映射
+    query_offsets = {str(h): offset for h, offset in hashes}
+    hash_list = list(query_offsets.keys())
+
+    # 批量查询命中
     matches = db.query(Fingerprint).filter(
         Fingerprint.hash_value.in_(hash_list)
     ).all()
 
-    song_scores = defaultdict(int)
-    for fp in matches:
-        song_scores[fp.song_id] += 1
-
-    if not song_scores:
+    if not matches:
         return {"status": "no_match", "message": "未找到匹配的歌曲，请尝试重新录制"}
 
-    best_song_id = max(song_scores, key=song_scores.get)
-    best_score = song_scores[best_song_id]
+    # 统计 (song_id, 时间偏移差) 的出现次数
+    offset_counter = defaultdict(int)
+    for fp in matches:
+        query_offset = query_offsets.get(fp.hash_value)
+        if query_offset is None:
+            continue
+        offset_diff = fp.offset - query_offset
+        offset_counter[(fp.song_id, offset_diff)] += 1
+
+    if not offset_counter:
+        return {"status": "no_match", "message": "未找到匹配的歌曲"}
+
+    # 取「同一个时间偏移下，命中数最多」的歌曲
+    (best_song_id, best_offset), best_score = max(
+        offset_counter.items(), key=lambda x: x[1]
+    )
 
     if best_score < threshold:
         return {
             "status": "low_confidence",
             "best_score": best_score,
-            "message": f"匹配度过低（{best_score}），建议重新录制一段更清晰的音频"
+            "message": f"匹配度过低（{best_score}），建议重新录制更清晰的音频"
         }
 
     song = db.query(Song).filter(Song.id == best_song_id).first()
@@ -46,5 +71,6 @@ def match_song(db, hashes, threshold=50):
         "song_name": song.name,
         "artist": song.artist,
         "match_score": best_score,
+        "offset": best_offset,
         "total_hashes": len(hashes)
     }
